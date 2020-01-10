@@ -12,11 +12,13 @@
 # Version 0.12.3 @ 2019/09/22 $ 启动器更新
 # Version 0.12.4 @ 2019/09/28 $ 错误码修改，启动器更新
 # Version 0.12.5 @ 2019/10/20 $ 启动器更新
-#TODO issue 20191026 存在多个候选连接时Windows可能在step3、4未完成时切换网络
+# Version 0.13.0 @ 2020/01/10 $ 启动器更新，可利用termux-api输出到安卓Toast
+# TODO issue 20200101 登陆成功后服务器未返回剩余流量等信息导致程序于存储历史记录前终止
 
 import json
 import os
 import sqlite3
+import subprocess
 import sys
 import threading
 import time
@@ -40,18 +42,16 @@ IsWindows = sys.platform == 'win32'
 if IsWindows:
     os.system('TITLE 登录数字中南')
     if save_to_install_dir:
-        os.chdir(os.path.dirname(__file__))
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
     else:
         os.chdir(history_db_dir)
 
     def pause():
         if enable_pause:
-            print('')
+            print('\n\n')
             os.system("PAUSE")
 
     def show_wlan_info(repeat, interval):
-        import subprocess
-
         i = 0 if repeat == 0 else 1
         interval = 0.0 if repeat == 1 else interval
         while i <= repeat:
@@ -67,15 +67,16 @@ if IsWindows:
                 i = i+1
 
 else:
-    os.chdir(os.getenv('HOME')+'/notebooks')
+    if save_to_install_dir:
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    else:
+        os.chdir(history_db_dir)
 
     def pause():
         if enable_pause:
             input('\nPress Enter to continue...')
 
     def show_wlan_info(repeat, interval):
-        import subprocess
-
         i = 0 if repeat == 0 else 1
         interval = 0.0 if repeat == 1 else interval
         while i <= repeat:
@@ -103,12 +104,13 @@ else:
 
 
 def handle_args():
-    global enable_pause, location, skip_main, logout_mode, ret_code
+    global enable_pause, location, skip_main, logout_mode, ret_code, print
 
     i = 1
     skip_main = False
     logout_mode = False
     ret_code = 0
+    toast_required = False
     arg_count = len(sys.argv)-1
     while i <= arg_count:
         argument = sys.argv[i]
@@ -139,10 +141,34 @@ def handle_args():
             if (i+1 <= arg_count) and (sys.argv[i+1][0] != '/'):
                 i = i+1
                 ret_code = int(sys.argv[i])
+        elif argument == '/print-to-android-toast':
+            if os.getenv('PREFIX') == None:
+                print(
+                    "The argument '"+argument+"'" + " can only be used in Termux. Aborted.\n")
+                print('\n')
+            else:
+                if 'com.termux'in os.getenv('PREFIX'):
+                    toast_required = True
+                else:
+                    print(
+                        "The argument '"+argument+"'" + " can only be used in Termux. Aborted.\n")
+
         else:
             apperror(0, "Invalid argument - '"+argument+"'")
             sys.exit(22)
         i = i+1
+
+    if toast_required:
+        if enable_pause:
+            print(
+                "The argument '/print-to-android-toast' is valid only when '/nopause' assigned. Aborted.\n")
+        else:
+            def print(msg, cmd=''):
+                cmd = ['termux-toast', '-b',
+                       'red'] if cmd != '' else ['termux-toast', '-s']
+                toast = subprocess.Popen(
+                    cmd, stdin=subprocess.PIPE, universal_newlines=True)
+                toast.communicate(input=str(msg))
 
 
 def try_req(req_obj, con_timeout_local=0.0, returnerr=False):
@@ -161,8 +187,9 @@ def try_req(req_obj, con_timeout_local=0.0, returnerr=False):
 
 
 def apperror(step, reason, needpause=True):
-    print('\nException occured in step '+str(step)+':')
-    print('\t'+reason+'\n')
+    msg_list = ['Exception occured in step '+str(step)+':']
+    msg_list.append('\t'+reason)
+    print('\n'.join(msg_list), '\t')
     if needpause:
         pause()
     else:
@@ -250,15 +277,21 @@ def logout(post_header):
 
     data_resp = json.loads(resp.read().decode('utf-8'))
     if data_resp['resultCode'] == '0':
-        print('Successfully logged out.\n')
-        print('Connection info:')
-        print('%-18s%s' % ('   Account:', last_account))
-        print('%-18s%s' % ('   Local IP:', data_resp['userIntranetAddress']))
-        print('%-18s%s' % ('   IP:', data_resp['userAddress']))
-        print('%-18s%s' % ('   Login time:', last_login_time))
-        print('%-18s%s' % ('   Duration:', data_resp['time']))
-        print('-'*43)
-        print('')
+        msg_list = ['Successfully logged out.\n', 'Connection info:']
+        try:
+            msg_list.append('%-17s%s' % ('  Account:', last_account))
+            msg_list.append('%-17s%s' %
+                            ('  Local IP:', data_resp['userIntranetAddress']))
+            msg_list.append('%-17s%s' % ('  IP:', data_resp['userAddress']))
+            msg_list.append('%-17s%s' % ('  Login time:', last_login_time))
+            msg_list.append('%-17s%s' % ('  Duration:', data_resp['time']))
+            msg_list.append('-'*43)
+        except:
+            print('\n'.join(msg_list))
+            apperror(3, 'Missing required field. Info:\n\n'+str(data_resp_3))
+        else:
+            print('\n'.join(msg_list))
+        print('\n'.join(msg_list))
     else:
         apperror(3, 'Unknown Error.\n'+str(data_resp))
 
@@ -280,7 +313,11 @@ def internet_test():
 
         def run(self):
             """重写父类run方法，使之可更新report属性"""
-            self.report = self._target(*self._args)
+            try:
+                if self._target:
+                    self.report = self._target(*self._args, **self._kwargs)
+            finally:
+                del self._target, self._args, self._kwargs
 
     myhandler = MyRedirectHandler()
     myopener = request.build_opener(myhandler)
@@ -342,6 +379,7 @@ def get_cookie():
 def login(post_header, retry_when_unknown_err=False):
     global login_url, account, password, ip, cookie
     global data_resp_3
+    global ret_code
 
     post_header['Cookie'] = cookie
     post_str = 'accountID='+account+'&password='+password + \
@@ -357,23 +395,36 @@ def login(post_header, retry_when_unknown_err=False):
     raw_resp_3 = resp_3.read().decode('utf-8')
     data_resp_3 = json.loads(raw_resp_3)
     if data_resp_3['resultCode'] == '0':
-        print('Successfully logged in.\n')
-        print('Account info:')
-        print('%-18s%s' % ('   Name:', data_resp_3['accountID']))
-        print('%-18s%s' % ('   IP:', data_resp_3['userIntranetAddress']))
-        print('%-18s%s' % ('   Total flow:', data_resp_3['totalflow']+'MB'))
-        print('%-18s%s' % ('   Used flow:', data_resp_3['usedflow']+'MB'))
-        print('%-18s%s' % ('   Surplus flow:',
-                           data_resp_3['surplusflow']+'MB'))
-        print('%-18s%s' % ('   Balance:', '￥'+data_resp_3['surplusmoney']))
-        print('-'*43)
-        print('Information updated at: ' + data_resp_3['lastupdate'])
-        print('')
+        msg_list = ['Successfully logged in.\n', 'Account info:']
+        try:
+            msg_list.append(
+                '%-17s%s' % ('  Name:', data_resp_3['accountID']))
+            msg_list.append(
+                '%-17s%s' % ('  IP:', data_resp_3['userIntranetAddress']))
+            msg_list.append(
+                '%-17s%s' % ('  Total flow:', data_resp_3['totalflow']+'MB'))
+            msg_list.append(
+                '%-17s%s' % ('  Used flow:', data_resp_3['usedflow']+'MB'))
+            msg_list.append(
+                '%-17s%s' % ('  Surplus flow:', data_resp_3['surplusflow']+'MB'))
+            msg_list.append(
+                '%-17s%s' % ('  Balance:', '￥'+data_resp_3['surplusmoney']))
+            msg_list.append('-'*43)
+            msg_list.append(
+                'Information updated at: ' + data_resp_3['lastupdate'])
+        except:
+            ret_code = 206
+            print('\n'.join(msg_list))
+            apperror(
+                4, 'Missing required field. History writing Skipped. Info:\n\n'+str(data_resp_3))
+        else:
+            print('\n'.join(msg_list))
     elif data_resp_3['resultDescribe'] == '该账号已在线':
-        print('\nException occured in step 4:')
-        print(
+        msg_list = ['Exception occured in step 4:']
+        msg_list.append(
             "\tServer returned error code ["+data_resp_3['resultCode'] + "]: '"+data_resp_3['resultDescribe']+"'\n")
-        print('Attempting to logout last recorded session....')
+        msg_list.append('Attempting to logout last recorded session....')
+        print('\n'.join(msg_list))
         logout(base_post_header)
         print('Waiting for server refreshing account state.... 3s')
         time.sleep(3)
@@ -413,7 +464,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         ret_code = 130
     except Exception as err:
-        print(err)
+        print(err, '\n')
         ret_code = 255
     pause()
     sys.exit(ret_code)
