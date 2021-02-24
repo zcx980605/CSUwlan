@@ -13,13 +13,13 @@ CSUwlan是一个用于自动化登录数字中南电信网的Python程序，也�
 + Python依赖
     + Python解释器3.x 【已内置用于64位Windows系统的python_embed】
     + rsa模块（仅在配置登录密码，即直接运行config.py时依赖）【已内置于python_embed】
-+ Windows依赖
++ 运行于Windows时的依赖
     + Windows任务计划程序（用于在连接无线网络后自动启动CSUwlan程序）【Windows系统组件】
     + Windows Console Based Script Host（用于安装时解释vbs脚本以创建快捷方式）【Windows系统组件】
     + SCHTASKS、NETSH命令行工具（用于添加/删除任务计划，读取/控制WLAN连接）【Windows系统组件】
-+ Linux依赖
++ 运行于Linux时的依赖
     + ifconfig命令行工具（用于读取WLAN连接信息）<sup>[ 1](#脚注1)</sup>
-+ Android依赖
++ 运行于Android时依赖
     + Termux应用
     + Termux-Api应用<sup>[ 1](#脚注1)</sup>
     + Termux中的python、termux-api<sup>[ 1 ](#脚注1)</sup>软件包
@@ -46,7 +46,7 @@ CSUwlan是一个用于自动化登录数字中南电信网的Python程序，也�
 
 ### Windows
 
-从[这个页面](https://github.com/zcx980605/CSUwlan/releases)下载带有Win64后缀的最新Release，解压到你希望的路径<sup>[ 4](#脚注4)</sup>后双击运行`.\CSUwlan\安装.bat`并按照提示完成安装。在安装过程中，你需要输入Windows当前用户的密码（如果没有则直接留空并按回车）用于添加任务计划，在最后一步，你需要输入数字中南电信网的账户名和密码（也就是之前从网页登录时要填的信息）。
+从[这个页面](https://github.com/zcx980605/CSUwlan/releases)下载带有Win64后缀的最新Release，解压到你希望的路径（不建议放置于“Program Files”目录<sup>[ 4](#脚注4)</sup>）后双击运行`.\CSUwlan\安装.bat`并按照提示完成安装。在安装过程中，你需要输入Windows当前用户的密码（如果没有则直接留空并按回车）用于添加任务计划，在最后一步，你需要输入数字中南电信网的账户名和密码（也就是之前从网页登录时要填的信息）。
 
 如果你希望更改之前输入的数字中南电信网账户名或密码，请再次运行安装程序或直接运行`config.py`（推荐，如果可能），原有配置将备份为`config.py_bak.txt`。
 
@@ -69,5 +69,42 @@ python3 AutoLogin.py
 
 ### 详细配置（高级）
 
+直接编辑安装程序生成的`config.py`（和`launcher_config.py`）可配置的参数有……
+
+<a name="脚注4">4</a>: 登录历史记录数据库的默认位置位于安装目录，由于Windows系统的安全限制，程序只有取得管理员权限后才可对“Program Files”目录及子目录写入，此程序运行时不会请求管理员权限因而无法正常工作，除非您手动禁用历史记录或将历史记录数据库移动到其他位置（详见[详细配置](#详细配置)）。
 
 ## 如何使用
+
+### 基本用法
+
++ 用于登录
+    + 在Windows下，程序将于新连接到无线网络后自动运行，要手动运行，请直接双击桌面“登录数字中南”快捷方式图标，或不带参数的运行AutoLogin.py。
+    + 在Linux下，你只能手动运行主程序来登录，即执行`python3 AutoLogin.py`。
+    + 在Android下，建议安装Termux-Widget应用，以便启动器中添加指向脚本的图标来方便运行。你也可以直接Termux App中执行`python AutoLogin.py`来登录，具体操作与Linux终端相同。
++ 用于登出
+    + 在Windows下，请直接双击桌面“登出数字中南”快捷方式图标，手动运行需向程序传入`/logout`参数，即`python AutoLogin.py /logout`。
+    + 在Linux和Android下，请执行`python3 AutoLogin.py /logout`。
+
+### 命令行参数详解
+
++ `/logout`：登出数字中南（使用历史记录数据库中最近的一条登录记录）
++ `/sysinfo`：动态显示无线接口信息（默认刷新5次，间隔1.0秒）
+    + 子开关`/r [[loops] [[interval]]]`：持续刷新，直到用户退出程序。可选指定循环次数和间隔，可单独指定循环次数，不可单独指定间隔。
++ `/print-to-android-toast`：将所有输出（包括标准输出、标准错误）重定向到Android Toast（仅在Android Termux环境下可用，且依赖Termux-Api应用及软件包）
++ `/nopause`：在本次运行时禁用类似“请按任意键继续”的提示，并在运行完成后直接退出，无论是否发生异常。
++ 内部参数`/location`：在Windows下，由`Launcher.py`传入，为用于获取登录Cookie的网址
++ 内部参数`/return`：在Windows下，由`Launcher.py`传入，指定成功登录并退出时返回的exitcode
+
+## 如何卸载
+
+卸载程序（脚本）还没有写😂，在Windows下，你需要手动删除名为“1_登录数字中南”的任务计划、手动删除桌面图标及手动删除程序所在的文件夹。
+
+对于删除任务计划，你可以使用Windows管理工具中的任务计划程序（`taskschd.msc`），在GUI下删除“任务计划程序库”根目录的“1_登录数字中南”任务。也可以以管理员身份直接执行命令`schtasks /DELETE /TN "1_登录数字中南" /F`。
+
+## 致谢
+
+本项目引用了GitHub用户[@founddev](https://github.com/founddev)编写的[myrsa.py](https://github.com/founddev/everything/tree/master/rsa)。本项目的myrsa.py文件中亦标明了引用。
+
+## 许可证
+
+还没想好。。。目前NO LISENCE。
