@@ -1,14 +1,3 @@
-# Launcher for "Autologin.py" (Build for Windows only)
-# First Build In Version 0.10.0 @ 2019/08/25 $ 核心功能
-# In Version 0.11.0 @ 2019/08/26 $ 调用主程序时利用命令行传参
-# In Version 0.11.3 @ 2019/09/02 $ 可指定python解释器路径、检测无线网络连接状态
-# In Version 0.12.0 @ 2019/09/04 $ 独立的配置信息文件
-# In Version 0.12.1 @ 2019/09/14 $ 阻止系统自动从无网络访问的WLAN断开(issue of Win10 1903)
-# In Version 0.12.3 @ 2019/09/22 $ 无网络连接时在限定时间内重试
-# In Version 0.12.4 @ 2019/09/28 $ 错误码修改，线程同步(issue 20190926)
-# In Version 0.12.5 @ 2019/10/20 $ 转义处理网址中的特殊含义字符以安全地回显消息(issue 20191011)
-# In Version 0.13.0 @ 2020/01/10 $ 开始登陆同时即监测WLAN并阻止系统自动切换到其他网络而致step3、4失败(issue 20191026)
-
 import os
 import subprocess
 import sys
