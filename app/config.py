@@ -36,11 +36,11 @@ login_url = 'http://61.137.86.87:8080/portalNat444/AccessServices/login'
 logout_url = 'http://61.137.86.87:8080/portalNat444/AccessServices/logout?'
 
 # Account settings for "CSU ChinaNet" Network
-account = 'n@zndx.inter'
-password = '95714d7243b98e150ec015c53ecc1e0c6af6edc862eb698e616b9b9e878d22fae89594c5c5a9fd0dd7c4446c021ed0e35159fe0e44c5a586c2f4ca0c7f0c990d61e0fbee5275676a5403710b554fbc5eee9d72fcce6397e7683f0b8d7be79c8ba67eec00cc03f18210cc94373cd0f40fbaa020310e793c7b23d3a40e4a213347'
+account = 'sample'
+password = 'rsa'
 
 # Settings for request header
-ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'
 base_post_header = {
     'Host': '61.137.86.87:8080',
     'User-Agent': ua,

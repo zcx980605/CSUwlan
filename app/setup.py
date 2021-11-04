@@ -88,7 +88,7 @@ test_succeed_redirection = 'https://www.baidu.com/'
 url_pattern = 'http://61.137.86.87:8080/portalNat444/AccessServices/bas.59df7586?wlanuserip='
 
 # Settings for request header
-ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'
 
 # Path of python interpreter
 path_of_python = r'%s'
@@ -146,7 +146,7 @@ account = 'sample'
 password = 'rsa'
 
 # Settings for request header
-ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'
 base_post_header = {
     'Host': '61.137.86.87:8080',
     'User-Agent': ua,
