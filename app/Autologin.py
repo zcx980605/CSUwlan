@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -87,10 +88,11 @@ else:
 
 
 def handle_args():
-    global enable_pause, location, skip_main, logout_mode, ret_code, print
+    global enable_pause, location, ip_specified, skip_main, logout_mode, ret_code, print
 
     i = 1
     skip_main = False
+    ip_specified = False
     logout_mode = False
     ret_code = 0
     toast_required = False
@@ -101,6 +103,11 @@ def handle_args():
             if i+1 <= arg_count:
                 i = i+1
                 location = sys.argv[i]
+        elif argument == '/ip':
+            if i+1 <= arg_count:
+                i = i+1
+                ip_specified = True
+                verify_ip(sys.argv[i])
         elif argument == '/logout':
             skip_main = True
             logout_mode = True
@@ -130,7 +137,7 @@ def handle_args():
                     "The argument '"+argument+"'" + " can only be used in Termux. Aborted.\n")
                 print('\n')
             else:
-                if 'com.termux'in os.getenv('PREFIX'):
+                if 'com.termux' in os.getenv('PREFIX'):
                     toast_required = True
                 else:
                     print(
@@ -152,6 +159,17 @@ def handle_args():
                 toast = subprocess.Popen(
                     cmd, stdin=subprocess.PIPE, universal_newlines=True)
                 toast.communicate(input=str(msg))
+
+
+def verify_ip(ip_to_verify=''):
+    global ip
+
+    ip_pattern = re.compile(
+        '^10\.96\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
+    if ip_pattern.match(ip_to_verify):
+        ip = ip_to_verify
+    else:
+        apperror(0, "Invalid IP specified - '%s'" % ip_to_verify)
 
 
 def try_req(req_obj, con_timeout_local=0.0, returnerr=False):
@@ -182,7 +200,7 @@ def apperror(step, reason, needpause=True):
 
 
 def write_history(start_time, data_dict):
-    global cookie
+    global ip_specified, cookie
 
     con = sqlite3.connect('csuwlan.db')
     cursor = con.cursor()
@@ -208,7 +226,7 @@ def write_history(start_time, data_dict):
     C1 = '%s.%03d' % (part1, part2)
     C2 = data_dict['accountID']
     C3 = data_dict['userIntranetAddress']
-    C4 = False
+    C4 = ip_specified
     C5 = data_dict['totalflow']
     C6 = data_dict['usedflow']
     C7 = data_dict['surplusflow']
@@ -274,7 +292,6 @@ def logout(post_header):
             apperror(3, 'Missing required field. Info:\n\n'+str(data_resp_3))
         else:
             print('\n'.join(msg_list))
-        print('\n'.join(msg_list))
     else:
         apperror(3, 'Unknown Error.\n'+str(data_resp))
 
@@ -423,13 +440,16 @@ def login(post_header, retry_when_unknown_err=False):
 
 
 def main():
+    global ip, location, url_pattern
     handle_args()
     if skip_main:
         sub()
         return
+    if ip_specified:
+        location = url_pattern+ip
     if not 'location' in globals().keys():
         internet_test()
-    analyze_location()
+        analyze_location()
     get_cookie()
     login(base_post_header)
     if save_history:
