@@ -440,7 +440,7 @@ def login(post_header, retry_when_unknown_err=False):
 
 
 def main():
-    global ip, location, url_pattern
+    global ip, ip_specified, location, url_pattern
     handle_args()
     if skip_main:
         sub()
@@ -449,6 +449,7 @@ def main():
         location = url_pattern+ip
     if not 'location' in globals().keys():
         internet_test()
+    if not ip_specified:
         analyze_location()
     get_cookie()
     login(base_post_header)
